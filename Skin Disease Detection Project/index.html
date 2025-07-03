@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skin Disease Prediction</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f7f7f7;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 500px;
+        }
+        .title {
+            text-align: center;
+            color: #FF6F61;
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+        .file-input {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .file-input input[type="file"] {
+            font-size: 1rem;
+            padding: 10px;
+        }
+        .preview-img {
+            display: block;
+            margin: 0 auto 20px;
+            max-width: 100%;
+            height: auto;
+        }
+        .result {
+            margin-top: 20px;
+        }
+        .result p {
+            font-size: 1.2rem;
+            margin: 5px 0;
+        }
+        .tips {
+            margin-top: 15px;
+        }
+        .tips ul {
+            padding-left: 20px;
+        }
+        .tips li {
+            font-size: 1rem;
+            margin: 5px 0;
+        }
+        .error-message {
+            color: red;
+            font-weight: bold;
+        }
+        .button {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .button button {
+            padding: 10px 20px;
+            background-color: #FF6F61;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        .button button:hover {
+            background-color: #ff5a47;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="title">Skin Disease Prediction</div>
+
+        <div class="file-input">
+            <input type="file" id="imageInput" accept="image/*">
+        </div>
+
+        <img id="previewImage" class="preview-img" src="" alt="Image Preview" style="display: none;">
+
+        <div class="button">
+            <button onclick="uploadImage()">Predict</button>
+        </div>
+
+        <div id="result" class="result" style="display: none;">
+            <p><strong>Prediction: </strong><span id="prediction"></span></p>
+            <div id="disease-info">
+                <p><strong>Disease Name: </strong><span id="disease-name"></span></p>
+                <p><strong>Stage: </strong><span id="stage"></span></p>
+            </div>
+            <div class="tips">
+                <h4>Health Tips:</h4>
+                <ul id="tips-list"></ul>
+            </div>
+        </div>
+
+        <div id="error-message" class="error-message" style="display: none;"></div>
+    </div>
+
+    <script>
+        function uploadImage() {
+            const fileInput = document.getElementById('imageInput');
+            const formData = new FormData();
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert("Please select an image.");
+                return;
+            }
+
+            formData.append('file', file);
+
+            // Show loading message
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('error-message').style.display = 'none';
+
+            const previewImage = document.getElementById('previewImage');
+            previewImage.style.display = 'block';
+            previewImage.src = URL.createObjectURL(file);
+
+            // Send the image to the Flask server for prediction
+            fetch('/predict', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.prediction) {
+                    // Display the prediction result
+                    document.getElementById('prediction').innerText = data.prediction;
+                    document.getElementById('disease-name').innerText = data.disease_info.disease_name;
+                    document.getElementById('stage').innerText = data.disease_info.stage;
+
+                    // Populate tips list
+                    const tipsList = document.getElementById('tips-list');
+                    tipsList.innerHTML = '';
+
+                    // Check for the prediction and show corresponding tips
+                    if (data.prediction === 'Healthy Skin') {
+                        const healthyTips = [
+                            "Keep your skin hydrated.",
+                            "Protect your skin from UV rays using sunscreen.",
+                            "Maintain a balanced diet rich in antioxidants."
+                        ];
+                        healthyTips.forEach(tip => {
+                            const li = document.createElement('li');
+                            li.textContent = tip;
+                            tipsList.appendChild(li);
+                        });
+                    } else if (data.prediction === 'Melanoma') {
+                        const melanomaTips = [
+                            "Consult a doctor for a proper diagnosis.",
+                            "Avoid prolonged sun exposure.",
+                            "Get regular skin check-ups."
+                        ];
+                        melanomaTips.forEach(tip => {
+                            const li = document.createElement('li');
+                            li.textContent = tip;
+                            tipsList.appendChild(li);
+                        });
+                    }
+
+                    document.getElementById('result').style.display = 'block';
+                } else {
+                    // Display error message
+                    document.getElementById('error-message').innerText = data.error || 'An error occurred. Please try again.';
+                    document.getElementById('error-message').style.display = 'block';
+                }
+            })
+            .catch(error => {
+                document.getElementById('error-message').innerText = 'An error occurred. Please try again later.';
+                document.getElementById('error-message').style.display = 'block';
+            });
+        }
+    </script>
+</body>
+</html>
